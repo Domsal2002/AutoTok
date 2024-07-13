@@ -35,7 +35,7 @@ class DataResource(Resource):
     def post(self, language):
         if language in json_files:
             new_data = request.json
-            if 'title' in new_data and 'body' in new_data:
+            if 'body' in new_data and len(new_data) == 1:
                 new_data['id'] = str(uuid.uuid4())
                 current_data = read_json_file(language)
                 if not isinstance(current_data, list):
@@ -44,7 +44,7 @@ class DataResource(Resource):
                 write_json_file(language, current_data)
                 return make_response(jsonify({"message": "Data added successfully", "id": new_data['id']}), 200)
             else:
-                return make_response(jsonify({"error": "Invalid data format"}), 400)
+                return make_response(jsonify({"error": "Invalid data format. Only 'body' field is allowed"}), 400)
         else:
             return make_response(jsonify({"error": "Invalid language"}), 400)
 
