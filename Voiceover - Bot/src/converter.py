@@ -1,8 +1,9 @@
 import os
 import subprocess
 
-def convert_segments_to_mov(folder_path, text):
-    output_folder = os.path.join(folder_path, "./../aivoiceovers")
+def convert_segments_to_mov(folder_path, text, language):
+    """Convert MP4 segments to MOV format and save them in the appropriate folder based on the language."""
+    output_folder = os.path.join(folder_path, f"./../aivoiceovers/{language}")
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     

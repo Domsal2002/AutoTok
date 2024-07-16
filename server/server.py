@@ -4,25 +4,60 @@ from flask_swagger_ui import get_swaggerui_blueprint
 import json
 import os
 import uuid
+import logging
+import unicodedata
+import string
+import re
 
 app = Flask(__name__)
 api = Api(app)
 
 # Paths to your local JSON files
 json_files = {
-    'english': 'English.json',
-    'spanish': 'Spanish.json'
+    'english': os.getenv('ENGLISH_JSON_PATH', 'English.json'),
+    'spanish': os.getenv('SPANISH_JSON_PATH', 'Spanish.json'),
+    'english_long': os.getenv('ENGLISH_LONG_JSON_PATH', 'English_long.json'),
+    'spanish_long': os.getenv('SPANISH_LONG_JSON_PATH', 'Spanish_long.json')
 }
 
 # Function to read JSON file
 def read_json_file(language):
-    with open(json_files[language], 'r') as file:
-        return json.load(file)
+    try:
+        with open(json_files[language], 'r') as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logging.error(f"Error reading {language} JSON file: {e}")
+        return []
 
 # Function to write to JSON file
 def write_json_file(language, data):
-    with open(json_files[language], 'w') as file:
-        json.dump(data, file, indent=4)
+    try:
+        with open(json_files[language], 'w') as file:
+            json.dump(data, file, indent=4)
+    except IOError as e:
+        logging.error(f"Error writing to {language} JSON file: {e}")
+
+# Function to sanitize input data
+def sanitize_input(data):
+    sanitized_data = {}
+    allowed_punctuation = '.?!¿'
+    allowed_letters = 'Ñ'
+    
+    for key, value in data.items():
+        if isinstance(value, str):
+            # Normalize and remove non-ASCII characters
+            normalized_value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+            # Keep only ASCII letters, digits, whitespace, and allowed punctuation
+            sanitized_value = ''.join(
+                char for char in normalized_value 
+                if char in string.ascii_letters + string.digits + string.whitespace + allowed_punctuation + allowed_letters
+            )
+            # Ensure punctuation is directly attached to the preceding word
+            sanitized_value = re.sub(r'\s+([{}])'.format(re.escape(allowed_punctuation)), r'\1', sanitized_value)
+            sanitized_data[key] = sanitized_value
+        else:
+            sanitized_data[key] = value
+    return sanitized_data
 
 class DataResource(Resource):
     def get(self, language):
@@ -35,7 +70,8 @@ class DataResource(Resource):
     def post(self, language):
         if language in json_files:
             new_data = request.json
-            if 'body' in new_data and len(new_data) == 1:
+            if isinstance(new_data, dict) and 'title' in new_data and 'body' in new_data and len(new_data) == 2:
+                new_data = sanitize_input(new_data)
                 new_data['id'] = str(uuid.uuid4())
                 current_data = read_json_file(language)
                 if not isinstance(current_data, list):
@@ -44,7 +80,7 @@ class DataResource(Resource):
                 write_json_file(language, current_data)
                 return make_response(jsonify({"message": "Data added successfully", "id": new_data['id']}), 200)
             else:
-                return make_response(jsonify({"error": "Invalid data format. Only 'body' field is allowed"}), 400)
+                return make_response(jsonify({"error": "Invalid data format. Only 'title' and 'body' fields are allowed"}), 400)
         else:
             return make_response(jsonify({"error": "Invalid language"}), 400)
 
@@ -81,10 +117,13 @@ swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL, config={'app
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 if __name__ == '__main__':
-    # Initialize JSON files with empty list if they don't exist
+    # Initialize JSON files with an empty list if they don't exist
     for lang, path in json_files.items():
         if not os.path.exists(path):
             with open(path, 'w') as file:
                 json.dump([], file)
-
+    
+    # Set up logging
+    logging.basicConfig(level=logging.INFO)
+    
     app.run(debug=True)
