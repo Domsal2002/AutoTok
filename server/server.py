@@ -38,15 +38,19 @@ def write_json_file(language, data):
         logging.error(f"Error writing to {language} JSON file: {e}")
 
 # Function to sanitize input data
+# Function to sanitize input data
 def sanitize_input(data):
     sanitized_data = {}
-    allowed_punctuation = '.?!¿'
-    allowed_letters = 'Ñ'
-    
+    allowed_punctuation = '.?!¿¡'
+    allowed_letters = 'ÑñáéíóúüÁÉÍÓÚÜ'
+
     for key, value in data.items():
         if isinstance(value, str):
-            # Normalize and remove non-ASCII characters
-            normalized_value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+            # Normalize and remove non-ASCII characters except allowed letters
+            normalized_value = ''.join(
+                char if char in allowed_letters else unicodedata.normalize('NFKD', char).encode('ascii', 'ignore').decode('ascii')
+                for char in value
+            )
             # Keep only ASCII letters, digits, whitespace, and allowed punctuation
             sanitized_value = ''.join(
                 char for char in normalized_value 
@@ -58,6 +62,7 @@ def sanitize_input(data):
         else:
             sanitized_data[key] = value
     return sanitized_data
+
 
 class DataResource(Resource):
     def get(self, language):
