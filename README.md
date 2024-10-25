@@ -1,4 +1,4 @@
-# AI-Generated Reddit Story Video Creator
+# Reddit Story Bot
 
 _I am currently working on making this repository more readable and usable, as its current state does not make it extremely friendly to someone who is not familiar with its core functionality and workflow._
 
