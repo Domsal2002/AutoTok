@@ -1,6 +1,8 @@
-#I am currently working on making this repository more readable and useable as its current state does not make it extremely friendly to someone who is not familiar with its core functionality and workflow.
-
 # AI-Generated Reddit Story Video Creator
+
+_I am currently working on making this repository more readable and usable, as its current state does not make it extremely friendly to someone who is not familiar with its core functionality and workflow._
+
+---
 
 This project leverages OpenAI's GPT-4 to generate AI-driven Reddit-style stories and automatically edits them into videos formatted for YouTube Shorts. The project is designed to create engaging and captivating content by combining AI-generated narratives with video editing techniques.
 
