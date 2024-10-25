@@ -17,9 +17,8 @@ def add_text_to_image(text, image_path='Thumbnail_Stock.png'):
     if not os.path.exists(font_path):
         raise FileNotFoundError(f"Font file {font_path} not found.")
     
-    # Define a function to find the appropriate font size
     def find_optimal_font_size(text, max_width, max_height, font_path):
-        font_size = 1  # start with a small font size
+        font_size = 1  
         font = ImageFont.truetype(font_path, font_size)
         
         while True:

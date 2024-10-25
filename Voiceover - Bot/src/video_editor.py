@@ -79,7 +79,6 @@ def edit_video(background_path, title, body, config):
 
     video = video.subclip(start_time, start_time + audio_duration)
 
-    # Convert to 9:16 aspect ratio
     target_aspect_ratio = 9/16
     video = video.resize(height=1080)
     video = video.crop(x_center=video.w / 2, width=video.h * target_aspect_ratio, height=video.h)

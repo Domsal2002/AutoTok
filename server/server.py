@@ -38,7 +38,6 @@ def write_json_file(language, data):
         logging.error(f"Error writing to {language} JSON file: {e}")
 
 # Function to sanitize input data
-# Function to sanitize input data
 def sanitize_input(data):
     sanitized_data = {}
     allowed_punctuation = '.?!¿¡'
@@ -114,21 +113,3 @@ class DeleteAllResource(Resource):
 
 api.add_resource(DataResource, '/data/<string:language>')
 api.add_resource(DeleteAllResource, '/data/<string:language>/delete_all')
-
-# Swagger UI configuration
-SWAGGER_URL = '/swagger'
-API_URL = '/static/swagger.json'
-swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL, config={'app_name': "Local JSON Server"})
-app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
-
-if __name__ == '__main__':
-    # Initialize JSON files with an empty list if they don't exist
-    for lang, path in json_files.items():
-        if not os.path.exists(path):
-            with open(path, 'w') as file:
-                json.dump([], file)
-    
-    # Set up logging
-    logging.basicConfig(level=logging.INFO)
-    
-    app.run(debug=True)
