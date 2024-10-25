@@ -48,19 +48,6 @@ Check out a sample video created by this project on YouTube: [Watch Here](https:
 - **server**: Manages story data using a Flask server.
 - **Thumbnail Generator Imager**: Generates thumbnails with text overlay.
 
-## Getting Started
-
-1. **Setup Environment**: Ensure you have Python and the required libraries installed.
-2. **Configure API Keys**: Set up your OpenAI and Eleven Labs API keys in the configuration files.
-3. **Run the Server**: Start the Flask server to manage story data.
-4. **Generate Stories and Videos**: Use the provided scripts to generate stories and create videos.
-
-For detailed instructions, refer to the individual script files and their comments.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request with your changes.
-
 ## License
 
 This project is licensed under the MIT License.
