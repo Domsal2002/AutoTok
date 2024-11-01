@@ -13,7 +13,7 @@ def add_text_to_image(text, image_path='Thumbnail_Stock.png'):
     box_height = 105
     
     # Define the path to the DejaVuSans font file
-    font_path = "dejavu-sans.ttf"
+    font_path = "../Utils/dejavu-sans.ttf"
     if not os.path.exists(font_path):
         raise FileNotFoundError(f"Font file {font_path} not found.")
     

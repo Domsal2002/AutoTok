@@ -8,7 +8,7 @@ from src.converter import convert_segments_to_mov
 
 def choose_random_background():
     """Choose a random background video from the backgrounds folder."""
-    backgrounds_folder = './resources/backgrounds'
+    backgrounds_folder = './utils/backgrounds'
     background_files = [f for f in os.listdir(backgrounds_folder) if f.endswith('.mp4')]
     if not background_files:
         raise FileNotFoundError("No background files found in the backgrounds folder.")

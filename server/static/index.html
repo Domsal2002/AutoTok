@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prompt Generator</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4 text-center">Prompt Generator</h1>
+
+        <!-- Generate buttons -->
+        <div class="button-container text-center mb-4">
+            <button class="generateButton btn btn-primary" data-language="english" data-category="AITA">Generate AITA in English</button>
+            <button class="generateButton btn btn-primary" data-language="english" data-category="TIFU">Generate TIFU in English</button>
+            <button class="generateButton btn btn-primary" data-language="spanish" data-category="AITA">Generate AITA in Spanish</button>
+            <button class="generateButton btn btn-primary" data-language="spanish" data-category="TIFU">Generate TIFU in Spanish</button>
+        </div>
+
+        <!-- Feedback message -->
+        <div id="feedback" class="text-center mb-4"></div>
+
+        <!-- Sections to display stories -->
+        <div id="promptDisplay" class="row">
+            <div class="language-section col-md-6" id="englishStories">
+                <h2>English Stories</h2>
+                <!-- English stories will be appended here -->
+            </div>
+            <div class="language-section col-md-6" id="spanishStories">
+                <h2>Spanish Stories</h2>
+                <!-- Spanish stories will be appended here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <!-- Note: For modern projects, you might consider using the latest versions -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+    <!-- Your JavaScript code -->
+    <script>
+        // Function to fetch and display stories
+        function fetchStories(language) {
+            fetch(`/data/${language}`)
+                .then(response => response.json())
+                .then(data => {
+                    const storySectionId = language === 'english' ? 'englishStories' : 'spanishStories';
+                    const storySection = document.getElementById(storySectionId);
+
+                    // Clear existing stories
+                    storySection.innerHTML = `<h2>${language.charAt(0).toUpperCase() + language.slice(1)} Stories</h2>`;
+
+                    data.reverse().forEach(story => {
+                        // Create a new story element using Bootstrap card
+                        const storyDiv = document.createElement('div');
+                        storyDiv.className = 'story card mb-3';
+                        storyDiv.setAttribute('data-id', story.id);
+
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body';
+
+                        const titleElement = document.createElement('h5');
+                        titleElement.className = 'card-title';
+                        titleElement.textContent = story.title;
+
+                        const bodyElement = document.createElement('p');
+                        bodyElement.className = 'card-text';
+                        bodyElement.textContent = story.body;
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = 'btn btn-danger btn-sm deleteButton';
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.addEventListener('click', function() {
+                            if (confirm('Are you sure you want to delete this story?')) {
+                                deleteStory(language, story.id);
+                            }
+                        });
+
+                        cardBody.appendChild(titleElement);
+                        cardBody.appendChild(bodyElement);
+                        cardBody.appendChild(deleteButton);
+                        storyDiv.appendChild(cardBody);
+
+                        // Append the new story to the section
+                        storySection.appendChild(storyDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching stories:', error);
+                });
+        }
+
+        // Function to delete a story
+        function deleteStory(language, storyId) {
+            fetch(`/delete_story`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    language: language,
+                    id: storyId,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete story');
+                }
+                // Refresh the stories
+                fetchStories(language);
+            })
+            .catch(error => {
+                console.error('Error deleting story:', error);
+            });
+        }
+
+        // Fetch stories on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchStories('english');
+            fetchStories('spanish');
+        });
+
+        document.querySelectorAll('.generateButton').forEach(button => {
+            button.addEventListener('click', function() {
+                const language = this.getAttribute('data-language');
+                const category = this.getAttribute('data-category');
+                const feedbackDiv = document.getElementById('feedback');
+
+                // Show feedback and disable buttons 
+                feedbackDiv.textContent = 'Generating story...';
+                feedbackDiv.classList.remove('error');
+                document.querySelectorAll('.generateButton').forEach(btn => btn.disabled = true);
+
+                fetch('/generate_prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        language: language,
+                        category: category
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json()
+                })
+                .then(data => {
+                    // Clear feedback and re-enable buttons
+                    feedbackDiv.textContent = '';
+                    document.querySelectorAll('.generateButton').forEach(btn => btn.disabled = false);
+
+                    // Fetch stories again to update the list
+                    fetchStories(language);
+                })
+                .catch(error => {
+                    // Handle errors
+                    console.error('Error:', error);
+                    feedbackDiv.textContent = 'An error occurred while generating the story.';
+                    feedbackDiv.classList.add('error');
+                    document.querySelectorAll('.generateButton').forEach(btn => btn.disabled = false);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

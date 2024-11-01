@@ -7,3 +7,6 @@ aivoiceovers/
 english.json
 spanish.json
 venv/
+server/__pycache__/
+VideoMaker/src/__pycache__/
+config.toml

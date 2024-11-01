@@ -1,115 +1,101 @@
-from flask import Flask, request, jsonify, make_response
-from flask_restful import Resource, Api
-from flask_swagger_ui import get_swaggerui_blueprint
-import json
-import os
+from flask import Flask, request, jsonify, send_from_directory
 import uuid
 import logging
-import unicodedata
-import string
-import re
+from data_handler import read_json_file, write_json_file, sanitize_input
+from gptPrompter import generate_story
+import json
 
-app = Flask(__name__)
-api = Api(app)
+app = Flask(__name__, static_folder='static')
 
-# Paths to your local JSON files
-json_files = {
-    'english': os.getenv('ENGLISH_JSON_PATH', 'English.json'),
-    'spanish': os.getenv('SPANISH_JSON_PATH', 'Spanish.json'),
-    'english_long': os.getenv('ENGLISH_LONG_JSON_PATH', 'English_long.json'),
-    'spanish_long': os.getenv('SPANISH_LONG_JSON_PATH', 'Spanish_long.json')
-}
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
-# Function to read JSON file
-def read_json_file(language):
+VALID_LANGUAGES = ['english', 'spanish']
+VALID_CATEGORIES = ['AITA', 'TIFU']
+
+@app.route('/generate_prompt', methods=['POST'])
+def generate_prompt():
+    # Accept input data as JSON
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    language = data.get('language', 'english').lower()
+    category = data.get('category', 'AITA').upper()
+
+    if language not in VALID_LANGUAGES or category not in VALID_CATEGORIES:
+        return jsonify({"error": "Invalid language or category"}), 400
+
+    # Generate the story
+    story_content = generate_story(language, category)
+
+    if story_content is None:
+        return jsonify({"error": "OpenAI API error occurred"}), 500
+
+    # Parse the JSON output
     try:
-        with open(json_files[language], 'r') as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logging.error(f"Error reading {language} JSON file: {e}")
-        return []
+        story_json = json.loads(story_content)
+        title = story_json.get('title', 'No Title')
+        body = story_json.get('story', '')
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding failed: {e}")
+        title = "No Title"
+        body = story_content  # Use the entire content as the body
 
-# Function to write to JSON file
-def write_json_file(language, data):
-    try:
-        with open(json_files[language], 'w') as file:
-            json.dump(data, file, indent=4)
-    except IOError as e:
-        logging.error(f"Error writing to {language} JSON file: {e}")
+    # Create the story dictionary
+    story = {"title": title, "body": body}
 
-# Function to sanitize input data
-def sanitize_input(data):
-    sanitized_data = {}
-    allowed_punctuation = '.?!¿¡'
-    allowed_letters = 'ÑñáéíóúüÁÉÍÓÚÜ'
+    # Assign a unique ID
+    story['id'] = str(uuid.uuid4())
 
-    for key, value in data.items():
-        if isinstance(value, str):
-            # Normalize and remove non-ASCII characters except allowed letters
-            normalized_value = ''.join(
-                char if char in allowed_letters else unicodedata.normalize('NFKD', char).encode('ascii', 'ignore').decode('ascii')
-                for char in value
-            )
-            # Keep only ASCII letters, digits, whitespace, and allowed punctuation
-            sanitized_value = ''.join(
-                char for char in normalized_value 
-                if char in string.ascii_letters + string.digits + string.whitespace + allowed_punctuation + allowed_letters
-            )
-            # Ensure punctuation is directly attached to the preceding word
-            sanitized_value = re.sub(r'\s+([{}])'.format(re.escape(allowed_punctuation)), r'\1', sanitized_value)
-            sanitized_data[key] = sanitized_value
-        else:
-            sanitized_data[key] = value
-    return sanitized_data
+    # Sanitize the story
+    sanitized_story = sanitize_input(story)
 
+    # Read current data, append new story, and write back
+    current_data = read_json_file(language)
+    current_data.append(sanitized_story)
+    write_json_file(language, current_data)
 
-class DataResource(Resource):
-    def get(self, language):
-        if language in json_files:
-            data = read_json_file(language)
-            return make_response(jsonify(data), 200)
-        else:
-            return make_response(jsonify({"error": "Invalid language"}), 400)
+    # Return the sanitized story
+    return jsonify(sanitized_story)
 
-    def post(self, language):
-        if language in json_files:
-            new_data = request.json
-            if isinstance(new_data, dict) and 'title' in new_data and 'body' in new_data and len(new_data) == 2:
-                new_data = sanitize_input(new_data)
-                new_data['id'] = str(uuid.uuid4())
-                current_data = read_json_file(language)
-                if not isinstance(current_data, list):
-                    current_data = []
-                current_data.append(new_data)
-                write_json_file(language, current_data)
-                return make_response(jsonify({"message": "Data added successfully", "id": new_data['id']}), 200)
-            else:
-                return make_response(jsonify({"error": "Invalid data format. Only 'title' and 'body' fields are allowed"}), 400)
-        else:
-            return make_response(jsonify({"error": "Invalid language"}), 400)
+@app.route('/')
+def index():
+    logging.debug("Attempting to serve index.html")
+    return send_from_directory('static', 'index.html')
 
-    def delete(self, language):
-        if language in json_files:
-            data_id = request.args.get('id')
-            if data_id:
-                current_data = read_json_file(language)
-                updated_data = [item for item in current_data if item.get('id') != data_id]
-                if len(current_data) == len(updated_data):
-                    return make_response(jsonify({"error": "ID not found"}), 404)
-                write_json_file(language, updated_data)
-                return make_response(jsonify({"message": "Data deleted successfully"}), 200)
-            else:
-                return make_response(jsonify({"error": "ID not provided"}), 400)
-        else:
-            return make_response(jsonify({"error": "Invalid language"}), 400)
+@app.route('/data/<language>', methods=['GET'])
+def get_stories(language):
+    language = language.lower()
+    if language not in VALID_LANGUAGES:
+        return jsonify({"error": "Invalid language"}), 400
 
-class DeleteAllResource(Resource):
-    def delete(self, language):
-        if language in json_files:
-            write_json_file(language, [])
-            return make_response(jsonify({"message": "All data deleted successfully"}), 200)
-        else:
-            return make_response(jsonify({"error": "Invalid language"}), 400)
+    stories = read_json_file(language)
+    return jsonify(stories)
 
-api.add_resource(DataResource, '/data/<string:language>')
-api.add_resource(DeleteAllResource, '/data/<string:language>/delete_all')
+@app.route('/delete_story', methods=['DELETE'])
+def delete_story():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    language = data.get('language', '').lower()
+    story_id = data.get('id', '')
+
+    if language not in VALID_LANGUAGES or not story_id:
+        return jsonify({"error": "Invalid language or story ID"}), 400
+
+    stories = read_json_file(language)
+    updated_stories = [story for story in stories if story.get('id') != story_id]
+
+    if len(stories) == len(updated_stories):
+        return jsonify({"error": "Story not found"}), 404
+
+    write_json_file(language, updated_stories)
+
+    return jsonify({"message": "Story deleted successfully"}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)

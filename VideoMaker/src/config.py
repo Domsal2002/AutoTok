@@ -1,7 +1,7 @@
 import os
 import toml
 
-CONFIG_FILE = 'config.toml'
+CONFIG_FILE = './../config.toml'
 
 def read_config():
     if not os.path.exists(CONFIG_FILE):

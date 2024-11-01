@@ -1,0 +1,6 @@
+[settings.tts]
+ELEVEN_LABS_API_KEY = { optional = false, explanation = "Your Eleven Labs API Key", example = "21f13f91f54d741e2ae27d2ab1b99d59", input_error = "API Key is required and should be a valid string." }
+ELEVEN_LABS_VOICE = { optional = false, explanation = "Your Eleven Labs Voice ID", example = "Bella", options = ["Adam", "Antoni", "Arnold", "Bella", "Domi", "Elli", "Josh", "Rachel", "Sam"], input_error = "Voice ID is required and should be one of the available voices." }
+
+[settings.chatgpt]
+CHATGPT_API_KEY = { optional = false, explanation = "Your OpenAI ChatGPT API Key", example = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", input_error = "API Key is required and should be a valid string." }

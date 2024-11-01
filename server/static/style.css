@@ -1,0 +1,31 @@
+/* style.css */
+
+/* Custom styling to complement Bootstrap */
+body {
+    background-color: #f8f9fa;
+}
+
+h1, h2 {
+    color: #343a40;
+}
+
+.button-container {
+    margin-bottom: 20px;
+}
+
+.generateButton {
+    margin: 5px;
+}
+
+#feedback {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.language-section {
+    margin-top: 30px;
+}
+
+.error {
+    color: red;
+}
