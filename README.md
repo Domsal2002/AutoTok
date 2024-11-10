@@ -1,5 +1,7 @@
 # Reddit Story Bot
 
+### Changes to this workflow may come slow as I am working on a private version of it, if you have questions about the workflow in the meantime feel free to email me or start a discussion.
+
 _I am currently working on making this repository more readable and usable, as its current state does not make it extremely friendly to someone who is not familiar with its core functionality and workflow._
 
 ---
